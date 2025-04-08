@@ -1,0 +1,121 @@
+#!/usr/bin/php
+<?php
+// see https://svnbook.red-bean.com/en/1.8/svn.ref.reposhooks.post-commit.html
+$repository_path = $argv[1]; // Repository path
+$revision = $argv[2]; // Revision number created by the commit
+$transaction = $argv[3]; // Name of the transaction that has become the revision triggering the post-commit hook.
+
+$apache2_path = rtrim(file_get_contents(dirname($argv[0]) . '/apache2.path'));
+$webmentions_author = 'SVNmention'; // TODO: how to make this configurable
+
+function svnlook_cmd(string $subcmd, string $args): array|bool
+{
+    $cmd = "svnlook $subcmd $args";
+    $output = null;
+    $retval = null;
+    $cmd_ran = exec($cmd, $output, $retval);
+    if ($cmd_ran === false) {
+        error_log("[SVNmentions-hook:info] SVN $subcmd failed to run");
+        return false;
+    }
+    if ($retval !== 0) {
+        error_log("[SVNmentions-hook:info] SVN $subcmd returned with status: $retval");
+        return false;
+    }
+    return $output;
+}
+
+// see https://www.php.net/manual/en/class.domdocument.php
+// see https://www.php.net/manual/en/class.domxpath.php
+
+function stripReference(&$element, $key, $walk_arg)
+{
+    $uri = parse_url($element->getAttribute($walk_arg['attr']));
+    // check whether external or must be on the same server as the sender
+    $uri = array_replace($walk_arg['uri'], $uri); // use source as default values, replace with element values
+    $build_uri = $uri['scheme'] . '://' . $uri['host'];
+    if (isset($uri['port'])) {
+        $build_uri .= ':' . $uri['port'];
+    }
+    $path = substr($uri['path'], 2);
+    if (str_starts_with($uri['path'], '/')) {
+        $build_uri .= $uri['path'];
+    } elseif (str_starts_with($uri['path'], './')) {
+        $build_uri .= dirname($walk_arg['uri']['path']) . '/' . $path;
+    } elseif (str_starts_with($uri['path'], '../')) {
+        $build_uri .= dirname($walk_arg['uri']['path'], 1) . '/' . $path;
+    } else {
+        // invalid
+        return '';
+    }
+    if (isset($uri['query'])) {
+        $build_uri .= '?' . $uri['query'];
+    }
+    if (isset($uri['fragment'])) {
+        $build_uri .= '#' . $uri['fragment'];
+    }
+    $element = $build_uri;
+}
+
+function getDestinations(string $source_content, string $source_uri): array|bool
+{
+    $source = parse_url($source_uri);
+    $dom = new DOMDocument();
+    libxml_use_internal_errors(true); // Credit: https://stackoverflow.com/a/9149241
+    $dom->loadHTML($source_content);
+    libxml_use_internal_errors(false);
+    $webmention_section = $dom->getElementById('webmentions');
+    if ($webmention_section instanceof DomElement) {
+        $dom->removeChild($webmention_section); // do not include webmentions in the search
+    }
+
+    $xpath = new DOMXpath($dom);
+    $hrefs = iterator_to_array($xpath->query('//*[@href]'));
+    array_walk($hrefs, 'stripReference', array('dom'=>$dom, 'uri'=>$source, 'attr'=>'href'));
+    $srcs = iterator_to_array($xpath->query('//*[@src]'));
+    array_walk($srcs, 'stripReference', array('dom'=>$dom, 'uri'=>$source, 'attr'=>'src'));
+    $references = array_merge($hrefs, $srcs);
+    return $references;
+}
+
+// see https://www.w3.org/TR/webmention/#sending-webmentions
+
+function sendWebmention(string $sourceURI, string $targetURI): void
+{
+    echo "Sending Webmention from $sourceURI to $targetURI\n";
+}
+
+// processing
+
+try {
+    $sender_paths = svnlook_cmd('changed', "-r '$revision' '$repository_path'");
+    if ($sender_paths === false) {
+        // nothing to inspect
+        exit(0);
+    }
+    $commit_author = svnlook_cmd('author', "-r '$revision' '$repository_path'");
+    if ($commit_author !== false && strcmp($commit_author[0], $webmentions_author) === 0) {
+        // skip webmention receiver commits
+        exit(0);
+    }
+    foreach ($sender_paths as $sender_path) {
+        // remove 'U   ' preceding path
+        $sender_path = substr($sender_path, 4);
+        $sender_uri = "$apache2_path/$sender_path";
+        $sender_content = svnlook_cmd('cat', "-r '$revision' '$repository_path' '$sender_path'");
+        if ($sender_content === false) {
+            // not a file?
+            continue;
+        }
+        $destinations = getDestinations(implode("\n", $sender_content), $sender_uri);
+        if ($destinations === false) {
+            // no destinations to webmention
+            continue;
+        }
+        foreach ($destinations as $destination) {
+            sendWebmention($sender_uri, $destination);
+        }
+    }
+} catch (Exception $ex) {
+}
+?>
