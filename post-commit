@@ -6,6 +6,7 @@ $revision = $argv[2]; // Revision number created by the commit
 $transaction = $argv[3]; // Name of the transaction that has become the revision triggering the post-commit hook.
 
 $apache2_path = rtrim(file_get_contents(dirname($argv[0]) . '/apache2.path'));
+$client_id = rtrim(file_get_contents(dirname($argv[0]) . '/apache2.id'));
 $webmentions_author = 'SVNmention'; // TODO: how to make this configurable
 
 function svnlook_cmd(string $subcmd, string $args): array|bool
@@ -80,9 +81,48 @@ function getDestinations(string $source_content, string $source_uri): array|bool
 
 // see https://www.w3.org/TR/webmention/#sending-webmentions
 
-function sendWebmention(string $sourceURI, string $targetURI): void
+function initCurl(string $url): CurlHandle|false
 {
-    echo "Sending Webmention from $sourceURI to $targetURI\n";
+    global $client_id;
+    $curl = curl_init();
+    curl_setopt($curl, CURLOPT_URL, $url);
+    curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
+    curl_setopt($curl, CURLOPT_MAXREDIRS, 8);
+    curl_setopt($curl, CURLOPT_TIMEOUT_MS, round(4 * 1000));
+    curl_setopt($curl, CURLOPT_CONNECTTIMEOUT_MS, 2000);
+    curl_setopt($curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2);
+    curl_setopt($curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+    curl_setopt($curl, CURLOPT_USERNAME, $client_id);
+    return $curl;
+}
+
+function discoverWebmention($targetURI): string
+{
+    return '';
+}
+
+function sendWebmention(string $sourceURI, string $targetURI): bool
+{
+    $webmention_endpoint = discoverWebmention($targetURI);
+    echo "Sending Webmention from $sourceURI to $targetURI using $webmention_endpoint\n";
+
+    $curl = initCurl($webmention_endpoint);
+    curl_setopt($curl, CURLOPT_POST, true);
+    curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query(array('source' => $sourceURI, 'target' => $targetURI)));
+    //curl_setopt($curl, CURLOPT_HEADER, true);
+    $body = curl_exec($curl);
+    $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+    curl_close($curl);
+    switch ($httpcode) {
+        case 200:
+        case 201:
+        case 202:
+            return true;
+        default:
+            fwrite(STDERR, "webmention failure: $body\n");
+            return false;
+    }
 }
 
 // processing
