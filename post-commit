@@ -97,14 +97,50 @@ function initCurl(string $url): CurlHandle|false
     return $curl;
 }
 
-function discoverWebmention($targetURI): string
+function discoverWebmention($targetURI): string|bool
 {
-    return '';
+    $target = parse_url($targetURI);
+    $curl = initCurl($targetURI);
+    curl_setopt($curl, CURLOPT_HTTPHEADER, ['Accept: text/html']);
+    curl_setopt($curl, CURLOPT_HEADER, true);
+    $response = curl_exec($curl);
+    $header_size = curl_getinfo($curl, CURLINFO_HEADER_SIZE);
+    curl_close($curl);
+    if (curl_errno($curl)) {
+        return false;
+    }
+    // Credit: https://stackoverflow.com/a/9183272 (but there is a potentially better answer)
+    $header = substr($response, 0, $header_size);
+    $body = substr($response, $header_size);
+    if (preg_match('/LINK: (http.*); rel="webmention"/', $header, $matches) === 1) {
+        return $matches[1];
+    }
+
+    $dom = new DOMDocument();
+    libxml_use_internal_errors(true); // Credit: https://stackoverflow.com/a/9149241
+    $dom->loadHTML($body);
+    libxml_use_internal_errors(false);
+    $xpath = new DOMXpath($dom);
+    $links = iterator_to_array($xpath->query("*/link[@rel='webmention']"));
+    array_walk($links, 'stripReference', array('dom'=>$dom, 'uri'=>$target, 'attr'=>'href'));
+    if (isset($links[0])) {
+        return $links[0];
+    }
+    $anchors = iterator_to_array($xpath->query("*/a[@rel='webmention']"));
+    array_walk($anchors, 'stripReference', array('dom'=>$dom, 'uri'=>$target, 'attr'=>'href'));
+    if (isset($anchors[0])) {
+        return $anchors[0];
+    }
+    return false;
 }
 
 function sendWebmention(string $sourceURI, string $targetURI): bool
 {
     $webmention_endpoint = discoverWebmention($targetURI);
+    if ($webmention_endpoint === false) {
+        fwrite(STDERR, "webmention failure: could not discover receiver\n");
+        return false;
+    }
     echo "Sending Webmention from $sourceURI to $targetURI using $webmention_endpoint\n";
 
     $curl = initCurl($webmention_endpoint);
