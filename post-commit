@@ -58,7 +58,7 @@ function stripReference(&$element, $key, $walk_arg)
     $element = $build_uri;
 }
 
-function getDestinations(string $source_content, string $source_uri): array|bool
+function getHTMLDestinations(string $source_content, string $source_uri): array|bool
 {
     $source = parse_url($source_uri);
     $dom = new DOMDocument();
@@ -178,12 +178,25 @@ try {
         // remove 'U   ' preceding path
         $sender_path = substr($sender_path, 4);
         $sender_uri = "$apache2_path/$sender_path";
+        $sender_mime = svnlook_cmd('propget', "-r '$revision' '$repository_path' svn:mime-type '$sender_path'");
+        if ($sender_mime === false) {
+            // svn:mime-type not set
+            continue;
+        }
+        $sender_mime = $sender_mime[0]; // should only have one value
         $sender_content = svnlook_cmd('cat', "-r '$revision' '$repository_path' '$sender_path'");
         if ($sender_content === false) {
             // not a file?
             continue;
         }
-        $destinations = getDestinations(implode("\n", $sender_content), $sender_uri);
+        switch ("$sender_mime") {
+            case 'text/html':
+                $destinations = getHTMLDestinations(implode("\n", $sender_content), $sender_uri);
+                break;
+            default:
+                $destinations = false;
+                break;
+        }
         if ($destinations === false) {
             // no destinations to webmention
             continue;
