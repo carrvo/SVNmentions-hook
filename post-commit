@@ -183,12 +183,13 @@ try {
             // svn:mime-type not set
             continue;
         }
+        $sender_mime = $sender_mime[0]; // should only have one value
         $sender_content = svnlook_cmd('cat', "-r '$revision' '$repository_path' '$sender_path'");
         if ($sender_content === false) {
             // not a file?
             continue;
         }
-        switch ($sender_mime) {
+        switch ("$sender_mime") {
             case 'text/html':
                 $destinations = getHTMLDestinations(implode("\n", $sender_content), $sender_uri);
                 break;
