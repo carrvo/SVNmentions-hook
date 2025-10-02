@@ -34,6 +34,11 @@ Just commit files with a supported `svn:mime-type` SVN property!
 
 Note that the outgoing requests will be invisible and **errors will not be reported at this time**.
 
+### Skip
+
+You can set `webmention:skip` SVN property (detects existence) for any documents you do not want links to incur an outgoing Webmention.
+This is valuable for feed and sitemap documents who have references to other documents but is not appropriate to send a Webmention to them.
+
 ## License
 
 Copyright 2024 by carrvo

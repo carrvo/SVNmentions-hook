@@ -178,6 +178,11 @@ try {
         // remove 'U   ' preceding path
         $sender_path = substr($sender_path, 4);
         $sender_uri = "$apache2_path/$sender_path";
+        $sender_skip = svnlook_cmd('propget', "-r '$revision' '$repository_path' webmention:skip '$sender_path'");
+        if ($sender_skip !== false) {
+            // webmention:skip is set
+            continue;
+        }
         $sender_mime = svnlook_cmd('propget', "-r '$revision' '$repository_path' svn:mime-type '$sender_path'");
         if ($sender_mime === false) {
             // svn:mime-type not set
