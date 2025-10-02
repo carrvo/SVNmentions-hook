@@ -16,15 +16,22 @@ Note the following requirements:
 - `https://example.com/apache2/webspace/path` *MUST NOT* end in a slash (`/`) due to it being added by the hook later
 - `https://example.com/apache2/webspace/path` *MUST* either start with `https://` OR `http://`
 
-```
-./install.bash /path/to/svn-repo/ https://example.com/apache2/webspace/path
-```
+1. Clone
+1. Run `make debian-package-dependencies` to install dependent *build* Debian packages
+1. Run `make debian-package` to build package locally
+1. Run `dpkg -i package/SVNmentions-hook_X.X.X_all.deb` to install package locally
+- [PHP](https://www.php.net/)
+- [SVN](https://subversion.apache.org/)
+1. add the hook to the repository
+    ```
+    add-SVNmentions-hook /path/to/svn-repo/ https://example.com/apache2/webspace/path
+    ```
 
 *Optionally*, you can specify a client ID that will be provided whenever a service is asking for authentication.
 
 ```
-./install.bash /path/to/svn-repo/ https://example.com/apache2/webspace/path https://example.com/apache2/id
-./install.bash /path/to/svn-repo/ https://example.com/apache2/webspace/path 'client ID'
+add-SVNmentions-hook /path/to/svn-repo/ https://example.com/apache2/webspace/path https://example.com/apache2/id
+add-SVNmentions-hook /path/to/svn-repo/ https://example.com/apache2/webspace/path 'client ID'
 ```
 
 ## Usage

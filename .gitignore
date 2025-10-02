@@ -1,0 +1,7 @@
+debian/.debhelper/
+debian/debhelper-build-stamp
+debian/files
+debian/SVNmentions-hook.debhelper.log
+debian/SVNmentions-hook/
+package/
+
