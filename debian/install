@@ -1,0 +1,2 @@
+post-commit /usr/src/SVNmentions-hook/
+add-SVNmentions-hook /usr/bin/

@@ -8,7 +8,7 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 # 2) ends with slash (/)
 if [[ "$1" == "" || "$1" != */ ]];
 then
-	echo "usage: ./install.bash /path/to/svn-repo/ https://example.com/apache2/webspace/path"
+	echo "usage: add-SVNmentions-hook /path/to/svn-repo/ https://example.com/apache2/webspace/path"
 	exit 1
 fi
 
@@ -18,7 +18,7 @@ fi
 # 3) does NOT end with slash (/)
 if [[ "$2" == "" || "$2" != http* || "$2" == */ ]];
 then
-	echo "usage: ./install.bash /path/to/svn-repo/ https://example.com/apache2/webspace/path"
+	echo "usage: add-SVNmentions-hook /path/to/svn-repo/ https://example.com/apache2/webspace/path"
 	exit 1
 fi
 
@@ -32,7 +32,7 @@ fi
 pushd "$1" > /dev/null
 cd hooks/
 echo installing post-commit in $PWD
-ln -s $SCRIPT_DIR/post-commit
+ln -s /usr/src/SVNmentions-hook/post-commit
 echo "$2" > $PWD/apache2.path
 echo "$CLIENT_ID" > $PWD/apache2.id
 if [ ! -f $PWD/apache2.path ];
