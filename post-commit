@@ -202,7 +202,10 @@ try {
             continue;
         }
         foreach ($destinations as $destination) {
-            sendWebmention($sender_uri, $destination);
+            // do not send to `#header` destination links (self-referencing links)
+            if (preg_match('/'.preg_quote($sender_uri, '/').'#/', $destination) !== 1) {
+                sendWebmention($sender_uri, $destination);
+            }
         }
     }
 } catch (Exception $ex) {
