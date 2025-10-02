@@ -107,6 +107,7 @@ function discoverWebmention($targetURI): string|bool
     $header_size = curl_getinfo($curl, CURLINFO_HEADER_SIZE);
     curl_close($curl);
     if (curl_errno($curl)) {
+        fwrite(STDERR, "cURL error: " . curl_errno($curl) . "\n");
         return false;
     }
     // Credit: https://stackoverflow.com/a/9183272 (but there is a potentially better answer)
@@ -138,7 +139,7 @@ function sendWebmention(string $sourceURI, string $targetURI, string $type = $nu
 {
     $webmention_endpoint = discoverWebmention($targetURI);
     if ($webmention_endpoint === false) {
-        fwrite(STDERR, "webmention failure: could not discover receiver\n");
+        fwrite(STDERR, "webmention failure: could not discover receiver for $targetURI\n");
         return false;
     }
     echo "Sending Webmention from $sourceURI to $targetURI using $webmention_endpoint\n";
@@ -169,6 +170,7 @@ function sendWebmention(string $sourceURI, string $targetURI, string $type = $nu
 // processing
 
 try {
+    $anyFailure = false;
     $sender_paths = svnlook_cmd('changed', "-r '$revision' '$repository_path'");
     if ($sender_paths === false) {
         // nothing to inspect
@@ -212,7 +214,9 @@ try {
             foreach ($destinations as $destination) {
                 // do not send to `#header` destination links (self-referencing links)
                 if (preg_match('/'.preg_quote($sender_uri, '/').'#/', $destination) !== 1) {
-                    sendWebmention($sender_uri, $destination);
+                    if (sendWebmention($sender_uri, $destination) === false) {
+                        $anyFailure = true;
+                    }
                 }
             }
         }
@@ -222,11 +226,18 @@ try {
             foreach ($sender_nonstandard as $destination) {
                 // do not send to `#header` destination links (self-referencing links)
                 if (preg_match('/'.preg_quote($sender_uri, '/').'#/', $destination) !== 1) {
-                    sendWebmention($sender_uri, $destination, type: 'webdav', property: 'webmention:send');
+                    if (sendWebmention($sender_uri, $destination, type: 'webdav', property: 'webmention:send') === false) {
+                        $anyFailure = true;
+                    }
                 }
             }
         }
     }
 } catch (Exception $ex) {
+    fwrite(STDERR, "webmention failure: $ex\n");
+    $anyFailure = true;
+}
+if ($anyFailure) {
+    exit(-1);
 }
 ?>
