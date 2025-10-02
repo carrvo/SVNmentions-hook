@@ -36,7 +36,7 @@ Note that the outgoing requests will be invisible and **errors will not be repor
 
 ### Skip
 
-You can set `webmention:skip` SVN property for any documents you do not want links to incur an outgoing Webmention.
+You can set `webmention:skip` SVN property (detects existence) for any documents you do not want links to incur an outgoing Webmention.
 This is valuable for feed and sitemap documents who have references to other documents but is not appropriate to send a Webmention to them.
 
 ## License
