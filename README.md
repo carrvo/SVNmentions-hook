@@ -39,7 +39,7 @@ add-SVNmentions-hook /path/to/svn-repo/ https://example.com/apache2/webspace/pat
 Just commit files with a supported `svn:mime-type` SVN property!
 - `text/html`
 
-Note that the outgoing requests will be invisible and **errors will not be reported at this time**.
+Note that the outgoing requests will be invisible and **all errors will be reported to, and only to, the client at this time**.
 
 ### Skip
 
