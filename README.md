@@ -39,6 +39,16 @@ Note that the outgoing requests will be invisible and **errors will not be repor
 You can set `webmention:skip` SVN property (detects existence) for any documents you do not want links to incur an outgoing Webmention.
 This is valuable for feed and sitemap documents who have references to other documents but is not appropriate to send a Webmention to them.
 
+### Non-Standard Webmentions
+
+Alternatively you can send **non-standard** Webmentions by populating a `webmention:send` SVN property with a destination per line. This is useful for mime-types that *cannot* have the destination embedded into their file content (such as image files).
+
+These non-standard Webmentions will send it with the **additional post fields**:
+- `type=webdav`
+- `property=webmention:send`
+
+Note: skipping takes priority.
+
 ## License
 
 Copyright 2024 by carrvo
