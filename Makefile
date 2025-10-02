@@ -16,10 +16,10 @@ debian-package-version:
 debian-package:
 	debuild -us -uc -Zxz
 	mkdir package || true
-	mv ../SVNmentions-hook_* package/
+	mv ../svnmentions-hook_* package/
 
 debsign:
-	cd package && debsign SVNmentions-hook_$(version)_amd64.changes
+	cd package && debsign svnmentions-hook_$(version)_amd64.changes
 
 dupload:
 	cd package && dupload --to debian-mentors

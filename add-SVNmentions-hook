@@ -32,7 +32,7 @@ fi
 pushd "$1" > /dev/null
 cd hooks/
 echo installing post-commit in $PWD
-ln -s $SCRIPT_DIR/post-commit
+ln -s /usr/src/SVNmentions-hook/post-commit
 echo "$2" > $PWD/apache2.path
 echo "$CLIENT_ID" > $PWD/apache2.id
 if [ ! -f $PWD/apache2.path ];
