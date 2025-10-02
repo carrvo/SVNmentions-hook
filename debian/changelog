@@ -1,3 +1,9 @@
+svnmentions-hook (1.2.1) unstable; urgency=medium
+
+  * better error reporting to client 
+
+ -- carrvo <carrvo@gmail.com>  Thu, 02 Oct 2025 08:00:07 -0600
+
 svnmentions-hook (1.2.0) unstable; urgency=medium
 
   * Initial release.
