@@ -1,6 +1,6 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Source: https://github.com/carrvo/SVNmentions-hook
-Upstream-Name: SVNmentions-hook
+Upstream-Name: svnmentions-hook
 Upstream-Contact: carrvo <carrvo@gmail.com>
 
 Files:

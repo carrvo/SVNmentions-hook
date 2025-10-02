@@ -1,4 +1,4 @@
-Source: SVNmentions-hook
+Source: svnmentions-hook
 Maintainer: carrvo  <carrvo@gmail.com>
 Uploaders: carrvo <carrvo@gmail.com>
 Section: web
@@ -9,10 +9,10 @@ Homepage: https://github.com/carrvo/SVNmentions-hook
 Vcs-Browser: https://github.com/carrvo/SVNmentions-hook
 Vcs-Git: https://github.com/carrvo/SVNmentions-hook
 
-Package: SVNmentions-hook
+Package: svnmentions-hook
 Architecture: all
 Depends: ${misc:Depends}, php
-Suggests: SVNmentions, subversion
+Suggests: svnmentions, subversion
 Homepage: https://github.com/carrvo/SVNmentions-hook
 Description: This compliments SVNmentions (webmentions receiver)
  by providing an SVN hook that will act as a webmentions sender.
