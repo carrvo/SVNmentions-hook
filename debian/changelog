@@ -1,3 +1,9 @@
+svnmentions-hook (1.2.2) unstable; urgency=medium
+
+  * minor syntax fix 
+
+ -- carrvo <carrvo@gmail.com>  Wed, 08 Oct 2025 19:01:59 -0600
+
 svnmentions-hook (1.2.1) unstable; urgency=medium
 
   * better error reporting to client 
