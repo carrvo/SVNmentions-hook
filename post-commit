@@ -135,7 +135,7 @@ function discoverWebmention($targetURI): string|bool
     return false;
 }
 
-function sendWebmention(string $sourceURI, string $targetURI, string $type = $null, string $property = $null): bool
+function sendWebmention(string $sourceURI, string $targetURI, string $type = NULL, string $property = NULL): bool
 {
     $webmention_endpoint = discoverWebmention($targetURI);
     if ($webmention_endpoint === false) {
@@ -146,7 +146,7 @@ function sendWebmention(string $sourceURI, string $targetURI, string $type = $nu
 
     $curl = initCurl($webmention_endpoint);
     curl_setopt($curl, CURLOPT_POST, true);
-    if ($type === $null || $property === $null) {
+    if ($type === NULL || $property === NULL) {
         curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query(array('source' => $sourceURI, 'target' => $targetURI)));
     }
     else {
