@@ -185,12 +185,14 @@ try {
         // remove 'U   ' preceding path
         $sender_path = substr($sender_path, 4);
         $sender_uri = "$apache2_path/$sender_path";
-        $sender_skip = svnlook_cmd('propget', "-r '$revision' '$repository_path' webmention:skip '$sender_path'");
+        $sender_properties = array_map('trim', array_slice(svnlook_cmd('proplist', "-r '$revision' '$repository_path' '$sender_path'"), 1));
+
+        $sender_skip = in_array('webmention:skip', $sender_properties) ? svnlook_cmd('propget', "-r '$revision' '$repository_path' webmention:skip '$sender_path'") : false;
         if ($sender_skip !== false) {
             // webmention:skip is set
             continue;
         }
-        $sender_mime = svnlook_cmd('propget', "-r '$revision' '$repository_path' svn:mime-type '$sender_path'");
+        $sender_mime = in_array('svn:mime-type', $sender_properties) ? svnlook_cmd('propget', "-r '$revision' '$repository_path' svn:mime-type '$sender_path'") : false;
         if ($sender_mime === false) {
             // svn:mime-type not set
             continue;
@@ -220,7 +222,7 @@ try {
                 }
             }
         }
-        $sender_nonstandard = svnlook_cmd('propget', "-r '$revision' '$repository_path' webmention:send '$sender_path'");
+        $sender_nonstandard = in_array('webmention:send', $sender_properties) ? svnlook_cmd('propget', "-r '$revision' '$repository_path' webmention:send '$sender_path'") : false;
         if ($sender_nonstandard !== false) {
             // destinations to webmention found in property webmention:send
             foreach ($sender_nonstandard as $destination) {
