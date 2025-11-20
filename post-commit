@@ -70,7 +70,7 @@ function getHTMLDestinations(string $source_content, string $source_uri): array|
     libxml_use_internal_errors(false);
     $webmention_section = $dom->getElementById('webmentions');
     if ($webmention_section instanceof DomElement) {
-        $dom->removeChild($webmention_section); // do not include webmentions in the search
+        $webmention_section->remove(); // do not include webmentions in the search
     }
 
     $xpath = new DOMXpath($dom);
