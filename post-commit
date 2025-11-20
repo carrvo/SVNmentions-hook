@@ -5,9 +5,12 @@ $repository_path = $argv[1]; // Repository path
 $revision = $argv[2]; // Revision number created by the commit
 $transaction = $argv[3]; // Name of the transaction that has become the revision triggering the post-commit hook.
 
-$apache2_path = rtrim(file_get_contents(dirname($argv[0]) . '/apache2.path'));
-$client_id = rtrim(file_get_contents(dirname($argv[0]) . '/apache2.id'));
-$webmentions_author = 'SVNmention'; // TODO: how to make this configurable
+$apache2_path = getenv('WebmentionsWebspaceRoot');
+$client_id = getenv('WebmentionsClientID');
+$webmentions_author = getenv('WebmentionsAuthor');
+if (empty($webmentions_author) === true) {
+    $webmentions_author = 'SVNmention';
+}
 
 function svnlook_cmd(string $subcmd, string $args): array|bool
 {

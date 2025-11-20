@@ -27,11 +27,15 @@ Note the following requirements:
     add-SVNmentions-hook /path/to/svn-repo/ https://example.com/apache2/webspace/path
     ```
 
-*Optionally*, you can specify a client ID that will be provided whenever a service is asking for authentication.
+*Optionally*, you can specify:
+- a client ID that will be provided whenever a service is asking for authentication.
+- customize the user agent for outgoing requests.
+- an author that gets skipped (*SHOULD* match SVNmentions author).
 
 ```
 add-SVNmentions-hook /path/to/svn-repo/ https://example.com/apache2/webspace/path https://example.com/apache2/id
 add-SVNmentions-hook /path/to/svn-repo/ https://example.com/apache2/webspace/path 'client ID'
+add-SVNmentions-hook /path/to/svn-repo/ https://example.com/apache2/webspace/path https://example.com/apache2/id "SVNmentions (https://github.com/carrvo/SVNmentions-hook) curl/8.5.0" SVNmention
 ```
 
 ## Usage

@@ -29,21 +29,42 @@ else
     CLIENT_ID="$3"
 fi
 
+if [ "$4" == "" ];
+then
+    CLIENT_AGENT="SVNmentions (https://github.com/carrvo/SVNmentions-hook) curl/8.5.0"
+else
+    CLIENT_AGENT="$4"
+fi
+
+if [ "$5" == "" ];
+then
+    CLIENT_AUTHOR=SVNmention
+else
+    CLIENT_AUTHOR="$5"
+fi
+
 pushd "$1" > /dev/null
 cd hooks/
 echo installing post-commit in $PWD
 ln -s /usr/src/SVNmentions-hook/post-commit
-echo "$2" > $PWD/apache2.path
-echo "$CLIENT_ID" > $PWD/apache2.id
-if [ ! -f $PWD/apache2.path ];
+
+cd ../conf/
+echo installing post-commit environment variables in $PWD
+echo "" >> $PWD/hooks-env
+echo "[post-commit]" >> $PWD/hooks-env
+echo "WebmentionsWebspaceRoot = $2" >> $PWD/hooks-env
+echo "WebmentionsClientID = $CLIENT_ID" >> $PWD/hooks-env
+echo "WebmentionsAuthor = $CLIENT_AUTHOR" >> $PWD/hooks-env
+echo "WebmentionsAgent = $CLIENT_AGENT" >> $PWD/hooks-env
+if [ ! -f $PWD/hooks-env ];
 then
-    echo "Please manually create apache2.path"
-    echo "echo $2 > $PWD/apache2.path"
-fi
-if [ ! -f $PWD/apache2.id ];
-then
-    echo "Please manually create apache2.id"
-    echo "echo $CLIENT_ID > $PWD/apache2.id"
+    echo "Please manually create hooks-env"
+    echo "echo '' >> $PWD/hooks-env"
+    echo "echo '[post-commit]' >> $PWD/hooks-env"
+    echo "echo 'WebmentionsWebspaceRoot = $2' >> $PWD/hooks-env"
+    echo "echo 'WebmentionsClientID = $CLIENT_ID' >> $PWD/hooks-env"
+    echo "echo 'WebmentionsAuthor = $CLIENT_AUTHOR' >> $PWD/hooks-env"
+    echo "echo 'WebmentionsAgent = $CLIENT_AGENT' >> $PWD/hooks-env"
 fi
 popd > /dev/null
 
