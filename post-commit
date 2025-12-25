@@ -172,7 +172,7 @@ function sendWebmention(string $sourceURI, string $targetURI, string $type = NUL
         case 202:
             return true;
         default:
-            fwrite(STDERR, "webmention failure: $body\n");
+            fwrite(STDERR, "webmention failure $httpcode: $body\n");
             return false;
     }
 }
