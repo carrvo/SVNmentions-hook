@@ -207,7 +207,7 @@ try {
         $sender_path = substr($sender_path, 4);
         $sender_uri = "$apache2_path/$sender_path";
         $sender_properties = svnlook_trim(svnlook_cmd('proplist', "-r '$revision' '$repository_path' '$sender_path'"));
-        $sender_previous_properties = svnlook_trim(svnlook_cmd('proplist', "-r '$previous_revision' '$repository_path' '$sender_path'")));
+        $sender_previous_properties = svnlook_trim(svnlook_cmd('proplist', "-r '$previous_revision' '$repository_path' '$sender_path'"));
 
         $sender_skip = in_array('webmention:skip', $sender_properties) ? svnlook_cmd('propget', "-r '$revision' '$repository_path' webmention:skip '$sender_path'") : false;
         $sender_previous_skip = in_array('webmention:skip', $sender_previous_properties) ? svnlook_cmd('propget', "-r '$previous_revision' '$repository_path' webmention:skip '$sender_path'") : false;
