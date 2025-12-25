@@ -179,7 +179,18 @@ function sendWebmention(string $sourceURI, string $targetURI, string $type = NUL
 
 // processing
 
+function svnlook_trim($svnlook_result) {
+    if ($svnlook_result === false) {
+        return [];
+    }
+    return array_map('trim', array_slice($svnlook_result, 1));
+}
+
 try {
+    $previous_revision = intval($revision) - 1;
+    if ($previous_revision < 0) {
+        $previous_revision = 0;
+    }
     $anyFailure = false;
     $sender_paths = svnlook_cmd('changed', "-r '$revision' '$repository_path'");
     if ($sender_paths === false) {
@@ -195,9 +206,11 @@ try {
         // remove 'U   ' preceding path
         $sender_path = substr($sender_path, 4);
         $sender_uri = "$apache2_path/$sender_path";
-        $sender_properties = array_map('trim', array_slice(svnlook_cmd('proplist', "-r '$revision' '$repository_path' '$sender_path'"), 1));
+        $sender_properties = svnlook_trim(svnlook_cmd('proplist', "-r '$revision' '$repository_path' '$sender_path'"));
+        $sender_previous_properties = svnlook_trim(svnlook_cmd('proplist', "-r '$previous_revision' '$repository_path' '$sender_path'")));
 
         $sender_skip = in_array('webmention:skip', $sender_properties) ? svnlook_cmd('propget', "-r '$revision' '$repository_path' webmention:skip '$sender_path'") : false;
+        $sender_previous_skip = in_array('webmention:skip', $sender_previous_properties) ? svnlook_cmd('propget', "-r '$previous_revision' '$repository_path' webmention:skip '$sender_path'") : false;
         if ($sender_skip !== false) {
             // webmention:skip is set
             continue;
@@ -209,13 +222,17 @@ try {
         }
         $sender_mime = $sender_mime[0]; // should only have one value
         $sender_content = svnlook_cmd('cat', "-r '$revision' '$repository_path' '$sender_path'");
-        if ($sender_content === false) {
-            // not a file?
-            continue;
-        }
+        $sender_previous_content = $sender_previous_skip === false ? svnlook_cmd('cat', "-r '$previous_revision' '$repository_path' '$sender_path'") : false;
+        $destinations = [];
         switch ("$sender_mime") {
             case 'text/html':
-                $destinations = getHTMLDestinations(implode("\n", $sender_content), $sender_uri);
+                if ($sender_previous_content !== false) {
+                    $destinations = array_merge($destinations, getHTMLDestinations(implode("\n", $sender_previous_content), $sender_uri));
+                }
+                if ($sender_content !== false) {
+                    $destinations = array_merge($destinations, getHTMLDestinations(implode("\n", $sender_content), $sender_uri));
+                }
+                // neither --> not a file?
                 break;
             default:
                 $destinations = false;
@@ -223,7 +240,7 @@ try {
         }
         if ($destinations !== false) {
             // destinations to webmention found in content
-            foreach ($destinations as $destination) {
+            foreach (array_unique($destinations) as $destination) {
                 // do not send to `#header` destination links (self-referencing links)
                 if (preg_match('/'.preg_quote($sender_uri, '/').'#/', $destination) !== 1) {
                     if (sendWebmention($sender_uri, $destination) === false) {
