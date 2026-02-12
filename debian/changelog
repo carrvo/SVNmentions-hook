@@ -1,3 +1,9 @@
+svnmentions-hook (2.1.1) unstable; urgency=medium
+
+  * feature #29 
+
+ -- carrvo <carrvo@gmail.com>  Thu, 12 Feb 2026 11:04:39 -0700
+
 svnmentions-hook (2.1.0) unstable; urgency=medium
 
   * fix bugs #25, #24 
