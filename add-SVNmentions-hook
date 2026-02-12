@@ -46,7 +46,16 @@ fi
 pushd "$1" > /dev/null
 cd hooks/
 echo installing post-commit in $PWD
-ln -s /usr/src/SVNmentions-hook/post-commit
+if [ -f ./post-commit ]; then
+   if [ -d ./post-commit.d/ ]; then
+       ln -s /usr/src/SVNmentions-hook/post-commit ./post-commit.d/SVNmentions
+    else
+       echo "conflict!"
+       exit 2
+    fi
+else
+   ln -s /usr/src/SVNmentions-hook/post-commit post-commit
+fi
 
 cd ../conf/
 echo installing post-commit environment variables in $PWD

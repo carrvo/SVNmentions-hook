@@ -38,6 +38,8 @@ add-SVNmentions-hook /path/to/svn-repo/ https://example.com/apache2/webspace/pat
 add-SVNmentions-hook /path/to/svn-repo/ https://example.com/apache2/webspace/path https://example.com/apache2/id "SVNmentions (https://github.com/carrvo/SVNmentions-hook) curl/8.5.0" SVNmention
 ```
 
+Note: if a hook is already present, it will instead install it under a `post-commit.d` directory.
+
 ## Usage
 
 Just commit files with a supported `svn:mime-type` SVN property!
