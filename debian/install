@@ -1,5 +1,5 @@
 post-commit /usr/src/SVNmentions-hook/
 text/html.php /usr/share/SVNmentions-hook/mime/text/
 auth.php /usr/share/SVNmentions-hook/
-default.php /usr/share/SVNmentions-hook/auth/
+auth/default.php /usr/share/SVNmentions-hook/auth/
 add-SVNmentions-hook /usr/bin/
