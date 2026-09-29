@@ -72,6 +72,20 @@ Plugins to parse the Webmentions destinations are found underneath their corresp
 
 These plugins *MUST* conform as though they are the function `function getDestinations(string $source_content, string $source_uri): array|bool` and `return` an array of URLs. They *MUST* be enclosed with PHP start and end tags. See the [official documentation for include](https://www.php.net/manual/en/function.include.php) (especially example #5) for further details. Please refer to the `text/html` plugin provided by default as a reference.
 
+### Authentication
+
+Plugins to extend this Webmentions sender with authentication are found at their corresponding `auth-scheme`, see [CURLAUTH_*](https://www.php.net/manual/en/curl.constants.php#constant.curlauth-any), file under `/usr/share/SVNmentions-hook/auth/` (such as `basic.php`; or, if none are found, `default.php`). These are called in response to a [WWW-Authenticate](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/WWW-Authenticate) response header; with the **exception** of `/usr/share/SVNmentions-hook/auth.php` that is **always** called (the provided plugin does nothing). For example, you may want to implement [Private Webmentions](https://indieweb.org/Private-Webmention).
+
+These plugins will have access to the following variables to gather information and manipulate:
+- `$curl` - the [cURL handle](https://www.php.net/manual/en/function.curl-setopt.php) to manipulate to inject the authentication
+- ~`$auth_header` - the [WWW-Authenticate](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/WWW-Authenticate) header information~ NOT INCLUDED AT THIS TIME
+- `$body` - the body of the unauthenticated request
+- `$url` - the destination that is being requested
+- `$client_id` - the user to be authenticated
+- `$agent` - the user agent sending the request
+
+See the [official documentation for include](https://www.php.net/manual/en/function.include.php) (especially example #2) for further details.
+
 ## License
 
 Copyright 2024 by carrvo
