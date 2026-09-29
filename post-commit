@@ -61,25 +61,12 @@ function stripReference(&$element, $key, $walk_arg)
     $element = $build_uri;
 }
 
-function getHTMLDestinations(string $source_content, string $source_uri): array|bool
+function getDestinations(string $mime_path, string $source_content, string $source_uri): array|bool
 {
-    $source = parse_url($source_uri);
-    $dom = new DOMDocument();
-    libxml_use_internal_errors(true); // Credit: https://stackoverflow.com/a/9149241
-    $dom->loadHTML($source_content);
-    libxml_use_internal_errors(false);
-    $webmention_section = $dom->getElementById('webmentions');
-    if ($webmention_section instanceof DomElement) {
-        $webmention_section->remove(); // do not include webmentions in the search
-    }
-
-    $xpath = new DOMXpath($dom);
-    $hrefs = iterator_to_array($xpath->query('//*[@href]'));
-    array_walk($hrefs, 'stripReference', array('dom'=>$dom, 'uri'=>$source, 'attr'=>'href'));
-    $srcs = iterator_to_array($xpath->query('//*[@src]'));
-    array_walk($srcs, 'stripReference', array('dom'=>$dom, 'uri'=>$source, 'attr'=>'src'));
-    $references = array_merge($hrefs, $srcs);
-    return $references;
+    // see https://www.php.net/manual/en/function.include.php
+    // especially example 5
+    $destinations = include "$mime_path";
+    return $destinations;
 }
 
 // see https://www.w3.org/TR/webmention/#sending-webmentions
@@ -224,19 +211,19 @@ try {
         $sender_content = svnlook_cmd('cat', "-r '$revision' '$repository_path' '$sender_path'");
         $sender_previous_content = $sender_previous_skip === false ? svnlook_cmd('cat', "-r '$previous_revision' '$repository_path' '$sender_path'") : false;
         $destinations = [];
-        switch ("$sender_mime") {
-            case 'text/html':
-                if ($sender_previous_content !== false) {
-                    $destinations = array_merge($destinations, getHTMLDestinations(implode("\n", $sender_previous_content), $sender_uri));
-                }
-                if ($sender_content !== false) {
-                    $destinations = array_merge($destinations, getHTMLDestinations(implode("\n", $sender_content), $sender_uri));
-                }
-                // neither --> not a file?
-                break;
-            default:
-                $destinations = false;
-                break;
+        $mime_path = realpath("/usr/share/SVNmentions-hook/mime/$sender_mime.php");
+        // is sanitary and exists and file (not directory)
+        if (preg_match("@/usr/share/SVNmentions-hook/mime/\w+/\w+.php@", $mime_path) === 1 && file_exists($mime_path) === true && is_dir($mime_path) === false) {
+            if ($sender_previous_content !== false) {
+                $destinations = array_merge($destinations, getDestinations($mime_path, implode("\n", $sender_previous_content), $sender_uri));
+            }
+            if ($sender_content !== false) {
+                $destinations = array_merge($destinations, getDestinations($mime_path, implode("\n", $sender_content), $sender_uri));
+            }
+            // neither --> not a file?
+        }
+        else {
+            $destinations = false;
         }
         if ($destinations !== false) {
             // destinations to webmention found in content

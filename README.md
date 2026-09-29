@@ -62,6 +62,16 @@ These non-standard Webmentions will send it with the **additional post fields**:
 
 Note: skipping takes priority.
 
+## Plugins
+
+WARNING: YOU ARE RESPONSIBLE FOR ANY PLUGINS THAT YOU INSTALL, CONFIGURE, CREATE, OR ARE OTHERWISE RUN AS A PLUGIN.
+
+### Mime Type
+
+Plugins to parse the Webmentions destinations are found underneath their corresponding mime type folder-file pair under `/usr/share/SVNmentions-hook/mime/`. For example, a plugin for `text/html` is provided by default and found at `/usr/share/SVNmentions-hook/mime/text/html.php`.
+
+These plugins *MUST* conform as though they are the function `function getDestinations(string $source_content, string $source_uri): array|bool` and `return` an array of URLs. They *MUST* be enclosed with PHP start and end tags. See the [official documentation for include](https://www.php.net/manual/en/function.include.php) (especially example #5) for further details. Please refer to the `text/html` plugin provided by default as a reference.
+
 ## License
 
 Copyright 2024 by carrvo

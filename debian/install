@@ -1,2 +1,3 @@
 post-commit /usr/src/SVNmentions-hook/
+text/html.php /usr/share/SVNmentions-hook/mime/text/
 add-SVNmentions-hook /usr/bin/
