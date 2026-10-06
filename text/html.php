@@ -1,4 +1,4 @@
-<?
+<?php
 #function getHTMLDestinations(string $source_content, string $source_uri): array|bool
 $source = parse_url($source_uri);
 $dom = new DOMDocument();
