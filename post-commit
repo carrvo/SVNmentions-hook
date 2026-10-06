@@ -61,25 +61,18 @@ function stripReference(&$element, $key, $walk_arg)
     $element = $build_uri;
 }
 
-function getHTMLDestinations(string $source_content, string $source_uri): array|bool
+function getDestinations(string $mime_path, string $source_content, string $source_uri): array
 {
-    $source = parse_url($source_uri);
-    $dom = new DOMDocument();
-    libxml_use_internal_errors(true); // Credit: https://stackoverflow.com/a/9149241
-    $dom->loadHTML($source_content);
-    libxml_use_internal_errors(false);
-    $webmention_section = $dom->getElementById('webmentions');
-    if ($webmention_section instanceof DomElement) {
-        $webmention_section->remove(); // do not include webmentions in the search
+    echo "[SVNmentions-hook:info] plugin $mime_path for $source_uri"; // to be logged
+    // see https://www.php.net/manual/en/function.include.php
+    // especially example 5
+    $destinations = include "$mime_path";
+    if (is_array($destinations)) {
+        return $destinations;
     }
-
-    $xpath = new DOMXpath($dom);
-    $hrefs = iterator_to_array($xpath->query('//*[@href]'));
-    array_walk($hrefs, 'stripReference', array('dom'=>$dom, 'uri'=>$source, 'attr'=>'href'));
-    $srcs = iterator_to_array($xpath->query('//*[@src]'));
-    array_walk($srcs, 'stripReference', array('dom'=>$dom, 'uri'=>$source, 'attr'=>'src'));
-    $references = array_merge($hrefs, $srcs);
-    return $references;
+    else {
+        return [];
+    }
 }
 
 // see https://www.w3.org/TR/webmention/#sending-webmentions
@@ -95,8 +88,6 @@ function initCurl(string $url): CurlHandle|false
     curl_setopt($curl, CURLOPT_TIMEOUT_MS, round(4 * 1000));
     curl_setopt($curl, CURLOPT_CONNECTTIMEOUT_MS, 2000);
     curl_setopt($curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2);
-    curl_setopt($curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
-    curl_setopt($curl, CURLOPT_USERNAME, $client_id);
 
     $agent = getenv('WebmentionsAgent');
     if ($agent === false) {
@@ -104,7 +95,80 @@ function initCurl(string $url): CurlHandle|false
     }
     curl_setopt($curl, CURLOPT_USERAGENT, "$agent");
 
+    include "/usr/share/SVNmentions-hook/auth.php";
+
     return $curl;
+}
+
+function execAuthCurl(CurlHandle $curl, $url)
+{
+    global $client_id;
+
+    $body = curl_exec($curl);
+    $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+    if ($httpcode !== 401) {
+        return $body;
+    }
+
+    $agent = getenv('WebmentionsAgent');
+    if ($agent === false) {
+        $agent = 'SVNmentions (https://github.com/carrvo/SVNmentions-hook) curl/8.5.0';
+    }
+
+    $auth_type = curl_getinfo($curl, CURLINFO_HTTPAUTH_AVAIL);
+    switch (true) {
+        case ($auth_type & CURLAUTH_BEARER !== 0):
+            $auth_plugin = "/usr/share/SVNmentions-hook/auth/bearer.php";
+            break;
+        case ($auth_type & CURLAUTH_DIGEST_IE !== 0):
+            $auth_plugin = "/usr/share/SVNmentions-hook/auth/digest_ie.php";
+            break;
+        case ($auth_type & CURLAUTH_DIGEST !== 0):
+            $auth_plugin = "/usr/share/SVNmentions-hook/auth/digest.php";
+            break;
+        case ($auth_type & CURLAUTH_NEGOTIATE !== 0):
+            $auth_plugin = "/usr/share/SVNmentions-hook/auth/negotiate.php";
+            break;
+        case ($auth_type & CURLAUTH_NTLM_WB !== 0):
+            $auth_plugin = "/usr/share/SVNmentions-hook/auth/ntlm_wb.php";
+            break;
+        case ($auth_type & CURLAUTH_NTLM !== 0):
+            $auth_plugin = "/usr/share/SVNmentions-hook/auth/ntlm.php";
+            break;
+        case ($auth_type & CURLAUTH_GSSNEGOTIATE !== 0):
+            $auth_plugin = "/usr/share/SVNmentions-hook/auth/gssnegotiate.php";
+            break;
+        case ($auth_type & CURLAUTH_GSSAPI !== 0):
+            $auth_plugin = "/usr/share/SVNmentions-hook/auth/gssapi.php";
+            break;
+        case ($auth_type & CURLAUTH_AWS_SIGV4 !== 0):
+            $auth_plugin = "/usr/share/SVNmentions-hook/auth/aws_sigv4.php";
+            break;
+        case ($auth_type & CURLAUTH_BASIC !== 0):
+            $auth_plugin = "/usr/share/SVNmentions-hook/auth/basic.php";
+            break;
+        default:
+            $auth_plugin = "/usr/share/SVNmentions-hook/auth/default.php";
+            break;
+    }
+
+    if (file_exists($auth_plugin) === true && is_dir($auth_plugin) === false) {
+        echo "[SVNmentions-hook:info] Using authentication plugin $auth_plugin"; // to be logged
+        include $auth_plugin;
+        $body = curl_exec($curl);
+    }
+    else { // fallback to default
+        $auth_plugin = "/usr/share/SVNmentions-hook/auth/default.php";
+        if (file_exists($auth_plugin) === true && is_dir($auth_plugin) === false) {
+            echo "[SVNmentions-hook:info] Using authentication plugin $auth_plugin"; // to be logged
+            include $auth_plugin;
+            $body = curl_exec($curl);
+        }
+        else {
+            echo "[SVNmentions-hook:info] Unable to load an authentication plugin for type $auth_type"; // to be logged
+        }
+    }
+    return $body;
 }
 
 function discoverWebmention($targetURI): string|bool
@@ -113,7 +177,7 @@ function discoverWebmention($targetURI): string|bool
     $curl = initCurl($targetURI);
     curl_setopt($curl, CURLOPT_HTTPHEADER, ['Accept: text/html']);
     curl_setopt($curl, CURLOPT_HEADER, true);
-    $response = curl_exec($curl);
+    $response = execAuthCurl($curl, $targetURI);
     $header_size = curl_getinfo($curl, CURLINFO_HEADER_SIZE);
     curl_close($curl);
     if (curl_errno($curl)) {
@@ -163,7 +227,7 @@ function sendWebmention(string $sourceURI, string $targetURI, string $type = NUL
         curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query(array('source' => $sourceURI, 'target' => $targetURI, 'type' => $type, 'property' => $property)));
     }
     //curl_setopt($curl, CURLOPT_HEADER, true);
-    $body = curl_exec($curl);
+    $body = execAuthCurl($curl, $webmention_endpoint);
     $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
     curl_close($curl);
     switch ($httpcode) {
@@ -172,7 +236,7 @@ function sendWebmention(string $sourceURI, string $targetURI, string $type = NUL
         case 202:
             return true;
         default:
-            fwrite(STDERR, "webmention failure $httpcode: $body\n");
+            fwrite(STDERR, "webmention failure $httpcode, message: $body\n");
             return false;
     }
 }
@@ -224,19 +288,19 @@ try {
         $sender_content = svnlook_cmd('cat', "-r '$revision' '$repository_path' '$sender_path'");
         $sender_previous_content = $sender_previous_skip === false ? svnlook_cmd('cat', "-r '$previous_revision' '$repository_path' '$sender_path'") : false;
         $destinations = [];
-        switch ("$sender_mime") {
-            case 'text/html':
-                if ($sender_previous_content !== false) {
-                    $destinations = array_merge($destinations, getHTMLDestinations(implode("\n", $sender_previous_content), $sender_uri));
-                }
-                if ($sender_content !== false) {
-                    $destinations = array_merge($destinations, getHTMLDestinations(implode("\n", $sender_content), $sender_uri));
-                }
-                // neither --> not a file?
-                break;
-            default:
-                $destinations = false;
-                break;
+        $mime_path = realpath("/usr/share/SVNmentions-hook/mime/$sender_mime.php");
+        // is sanitary and exists and file (not directory)
+        if (preg_match("@/usr/share/SVNmentions-hook/mime/\w+/\w+.php@", $mime_path) === 1 && file_exists($mime_path) === true && is_dir($mime_path) === false) {
+            if ($sender_previous_content !== false) {
+                $destinations = array_merge($destinations, getDestinations($mime_path, implode("\n", $sender_previous_content), $sender_uri));
+            }
+            if ($sender_content !== false) {
+                $destinations = array_merge($destinations, getDestinations($mime_path, implode("\n", $sender_content), $sender_uri));
+            }
+            // neither --> not a file?
+        }
+        else {
+            $destinations = false;
         }
         if ($destinations !== false) {
             // destinations to webmention found in content

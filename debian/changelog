@@ -1,3 +1,9 @@
+svnmentions-hook (3.0.0) UNRELEASED; urgency=medium
+
+  * Plugin Architectures for Mime Type and Authentication
+
+ -- carrvo <carrvo@gmail.com>  Mon, 28 Sep 2026 20:42:03 -0600
+
 svnmentions-hook (2.1.1) unstable; urgency=medium
 
   * feature #29 
